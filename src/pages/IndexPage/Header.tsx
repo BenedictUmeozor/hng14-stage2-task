@@ -9,7 +9,9 @@ const Header = () => {
     <header className="flex items-center justify-between gap-x-8">
       <div className="space-y-1.5 max-md:space-y-0.75">
         <h1 className="heading-l">Invoices</h1>
-        <p className="text-highlight body">There are 7 total invoices</p>
+        <p className="text-highlight body">
+          {isMobile ? "7 Invoices" : "There are 7 total invoices"}
+        </p>
       </div>
       <div className="flex flex-1 items-center justify-end max-md:gap-x-4">
         <StatusFilter />
