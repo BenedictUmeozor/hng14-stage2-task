@@ -4,13 +4,17 @@ import { cn } from "@/lib/utils";
 import type { Invoice as InvoiceType } from "@/types";
 import dayjs from "dayjs";
 import { useMediaQuery } from "react-responsive";
+import { Link } from "react-router";
 
 const Invoice = ({ invoice }: { invoice: InvoiceType }) => {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
 
   if (isMobile) {
     return (
-      <div className="hover:border-01 dark:bg-03 cursor-pointer space-y-6 rounded-lg border border-transparent bg-white p-6 transition-colors duration-150 ease-linear">
+      <Link
+        to={`/${invoice.id}`}
+        className="hover:border-01 dark:bg-03 block cursor-pointer space-y-6 rounded-lg border border-transparent bg-white p-6 transition-colors duration-150 ease-linear"
+      >
         <div className="flex items-center justify-between">
           <p className="heading-s-variant">
             <span className="text-07">#</span> {invoice.id}
@@ -45,12 +49,15 @@ const Invoice = ({ invoice }: { invoice: InvoiceType }) => {
             {invoice.status}
           </div>
         </div>
-      </div>
+      </Link>
     );
   }
 
   return (
-    <div className="hover:border-01 dark:bg-03 flex cursor-pointer items-center justify-between rounded-lg border border-transparent bg-white p-8 transition-colors duration-150 ease-linear max-lg:py-6">
+    <Link
+      to={`/${invoice.id}`}
+      className="hover:border-01 dark:bg-03 flex cursor-pointer items-center justify-between rounded-lg border border-transparent bg-white p-8 transition-colors duration-150 ease-linear max-lg:py-6"
+    >
       <div className="flex items-center justify-start">
         <p className="heading-s-variant mr-11">
           <span className="text-07">#</span> {invoice.id}
@@ -84,7 +91,7 @@ const Invoice = ({ invoice }: { invoice: InvoiceType }) => {
         </div>
         <ChevronRightIcon />
       </div>
-    </div>
+    </Link>
   );
 };
 

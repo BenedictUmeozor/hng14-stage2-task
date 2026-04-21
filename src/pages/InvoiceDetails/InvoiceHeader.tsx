@@ -1,0 +1,54 @@
+import Button from "@/components/Button";
+import { cn } from "@/lib/utils";
+import type { Invoice } from "@/types";
+import { useMediaQuery } from "react-responsive";
+
+const InvoiceHeader = ({ invoice }: { invoice: Invoice }) => {
+  const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
+
+  return (
+    <>
+      <header className="dark:bg-03 mt-7.5 mb-6 flex items-center justify-between rounded-lg bg-white px-8 py-6 max-md:mb-4 max-md:px-6">
+        <div className="flex items-center justify-start gap-x-5 max-md:w-full max-md:justify-between">
+          <p className="text-06 dark:text-05 body-variant">Status</p>
+          <div
+            className={cn(
+              "heading-s-variant flex h-10 w-[104px] items-center justify-center gap-x-2 rounded-md px-2 capitalize",
+              invoice.status === "paid" && "bg-[#33D69F]/6 text-[#33D69F]",
+              invoice.status === "pending" && "bg-[#FF8F00]/6 text-[#FF8F00]",
+              invoice.status === "draft" && "bg-[#373B53]/6 text-[#373B53]",
+            )}
+          >
+            <div
+              className={cn(
+                "size-2 rounded-full",
+                invoice.status === "paid" && "bg-[#33D69F]",
+                invoice.status === "pending" && "bg-[#FF8F00]",
+                invoice.status === "draft" && "bg-[#373B53]",
+              )}
+            />
+            {invoice.status}
+          </div>
+        </div>
+        {!isMobile && (
+          <div className="flex items-center justify-end gap-x-2">
+            <Button variant="button-3">Edit</Button>
+            <Button variant="button-5">Delete</Button>
+            <Button variant="button-2">Mark as paid</Button>
+          </div>
+        )}
+      </header>
+      {isMobile && (
+        <div className="fixed bottom-0 left-0 w-full bg-white px-6 py-5">
+          <div className="flex items-center gap-x-2">
+            <Button variant="button-3">Edit</Button>
+            <Button variant="button-5">Delete</Button>
+            <Button variant="button-2">Mark as paid</Button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+export default InvoiceHeader;
