@@ -6,12 +6,12 @@ import DatePicker from "./DatePicker";
 import Input from "./Input";
 import Select from "./Select";
 
-interface AddModalProps {
+interface EditModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const AddModal = ({ isOpen, onClose }: AddModalProps) => {
+const EditModal = ({ isOpen, onClose }: EditModalProps) => {
   const [hasScrolled, setHasScrolled] = useState(false);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -42,7 +42,7 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
           className={cn("overflow-y-auto px-13 pt-13 lg:pl-38.75")}
         >
           <h2 className="text-08 heading-m mb-11 dark:text-white">
-            New Invoice
+            Edit <span className="text-06">#</span>XM9141
           </h2>
 
           <div className="mb-12">
@@ -349,25 +349,20 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
         </div>
         <div
           className={cn(
-            "flex items-center justify-between rounded-tr-2xl px-13 py-8 lg:pl-38.75",
+            "flex items-center justify-end rounded-tr-2xl px-13 py-8 lg:pl-38.75",
             hasScrolled && "shadow-[0_-8px_16px_-4px_rgba(0,0,0,0.1)]",
           )}
         >
           <Button variant="button-3" type="button" onClick={onClose}>
-            Discard
+            Cancel
           </Button>
-          <div className="flex items-center gap-x-2">
-            <Button variant="button-4" type="button">
-              Save as draft
-            </Button>
-            <Button variant="button-2" type="submit">
-              Save & Send
-            </Button>
-          </div>
+          <Button variant="button-2" type="submit">
+            Save Changes
+          </Button>
         </div>
       </form>
     </div>
   );
 };
 
-export default AddModal;
+export default EditModal;

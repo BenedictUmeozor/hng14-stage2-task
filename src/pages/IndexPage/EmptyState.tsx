@@ -2,7 +2,7 @@ import image from "@/assets/images/email-campaign.png";
 
 const EmptyState = () => {
   return (
-    <div className="ite mx-auto mt-[140px] mb-[150px] flex max-w-[242px] flex-col gap-y-[66px] text-center max-md:mt-[100px]">
+    <div className="ite mx-auto mt-35 mb-37.5 flex max-w-60.5 flex-col gap-y-16.5 text-center max-md:mt-25">
       <img src={image} alt="Empty" className="w-full object-contain" />
       <div className="space-y-5">
         <h3 className="heading-m">There is nothing here</h3>

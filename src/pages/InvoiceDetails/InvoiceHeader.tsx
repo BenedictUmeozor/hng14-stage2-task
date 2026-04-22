@@ -3,7 +3,12 @@ import { cn } from "@/lib/utils";
 import type { Invoice } from "@/types";
 import { useMediaQuery } from "react-responsive";
 
-const InvoiceHeader = ({ invoice }: { invoice: Invoice }) => {
+interface InvoiceHeaderProps {
+  invoice: Invoice;
+  onOpen: () => void;
+}
+
+const InvoiceHeader = ({ invoice, onOpen }: InvoiceHeaderProps) => {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
 
   return (
@@ -13,7 +18,7 @@ const InvoiceHeader = ({ invoice }: { invoice: Invoice }) => {
           <p className="text-06 dark:text-05 body-variant">Status</p>
           <div
             className={cn(
-              "heading-s-variant flex h-10 w-[104px] items-center justify-center gap-x-2 rounded-md px-2 capitalize",
+              "heading-s-variant flex h-10 w-26 items-center justify-center gap-x-2 rounded-md px-2 capitalize",
               invoice.status === "paid" && "bg-[#33D69F]/6 text-[#33D69F]",
               invoice.status === "pending" && "bg-[#FF8F00]/6 text-[#FF8F00]",
               invoice.status === "draft" && "bg-[#373B53]/6 text-[#373B53]",
@@ -32,7 +37,9 @@ const InvoiceHeader = ({ invoice }: { invoice: Invoice }) => {
         </div>
         {!isMobile && (
           <div className="flex items-center justify-end gap-x-2">
-            <Button variant="button-3">Edit</Button>
+            <Button variant="button-3" onClick={onOpen}>
+              Edit
+            </Button>
             <Button variant="button-5">Delete</Button>
             <Button variant="button-2">Mark as paid</Button>
           </div>
