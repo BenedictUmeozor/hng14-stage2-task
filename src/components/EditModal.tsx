@@ -1,6 +1,6 @@
 import TrashIcon from "@/assets/icons/TrashIcon";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Button from "./Button";
 import DatePicker from "./DatePicker";
 import Input from "./Input";
@@ -13,13 +13,67 @@ interface EditModalProps {
 
 const EditModal = ({ isOpen, onClose }: EditModalProps) => {
   const [hasScrolled, setHasScrolled] = useState(false);
+  const modalRef = useRef<HTMLFormElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     setHasScrolled(e.currentTarget.scrollTop > 0);
   };
 
+  useEffect(() => {
+    if (isOpen) {
+      previousFocusRef.current = document.activeElement as HTMLElement;
+      
+      const focusableElements = modalRef.current?.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      
+      if (focusableElements && focusableElements.length > 0) {
+        (focusableElements[0] as HTMLElement).focus();
+      }
+    } else if (previousFocusRef.current) {
+      previousFocusRef.current.focus();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) return;
+
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (e.key === "Tab") {
+        const focusableElements = modalRef.current?.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        
+        if (!focusableElements || focusableElements.length === 0) return;
+
+        const firstElement = focusableElements[0] as HTMLElement;
+        const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+
+        if (e.shiftKey && document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        } else if (!e.shiftKey && document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-modal-title"
       className={cn(
         "fixed inset-0 z-99 flex bg-black/50 transition-all duration-500 ease-in-out",
         isOpen
@@ -31,6 +85,7 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
       }}
     >
       <form
+        ref={modalRef}
         className={cn(
           "dark:bg-12 grid h-full w-full max-w-179.75 grid-rows-[1fr_auto] overflow-hidden rounded-r-2xl bg-white pb-0 transition-transform duration-500 ease-in-out max-lg:max-w-154",
           isOpen ? "translate-x-0" : "-translate-x-full",
@@ -41,7 +96,7 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
           onScroll={handleScroll}
           className={cn("overflow-y-auto px-13 pt-13 lg:pl-38.75")}
         >
-          <h2 className="text-08 heading-m mb-11 dark:text-white">
+          <h2 id="edit-modal-title" className="text-08 heading-m mb-11 dark:text-white">
             Edit <span className="text-06">#</span>XM9141
           </h2>
 
@@ -50,7 +105,7 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
             <div className="space-y-6">
               <div className="space-y-2">
                 <label
-                  htmlFor="streetAddress"
+                  htmlFor="edit-from-streetAddress"
                   className="flex items-center justify-between"
                 >
                   <span
@@ -62,53 +117,53 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
                     Street Address
                   </span>
                   {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can’t be empty
+                    can't be empty
                   </span> */}
                 </label>
-                <Input type="text" id="streetAddress" />
+                <Input type="text" id="edit-from-streetAddress" />
               </div>
               <div className="grid grid-cols-3 gap-x-6">
                 <div className="space-y-2">
                   <label
-                    htmlFor="city"
+                    htmlFor="edit-from-city"
                     className="flex items-center justify-between"
                   >
                     <span className={cn("text-07 body-variant dark:text-05")}>
                       City
                     </span>
                     {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can’t be empty
+                    can't be empty
                   </span> */}
                   </label>
-                  <Input type="text" id="city" />
+                  <Input type="text" id="edit-from-city" />
                 </div>
                 <div className="space-y-2">
                   <label
-                    htmlFor="postCode"
+                    htmlFor="edit-from-postCode"
                     className="flex items-center justify-between"
                   >
                     <span className={cn("text-07 body-variant dark:text-05")}>
                       Post Code
                     </span>
                     {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can’t be empty
+                    can't be empty
                   </span> */}
                   </label>
-                  <Input type="text" id="postCode" />
+                  <Input type="text" id="edit-from-postCode" />
                 </div>
                 <div className="space-y-2">
                   <label
-                    htmlFor="country"
+                    htmlFor="edit-from-country"
                     className="flex items-center justify-between"
                   >
                     <span className={cn("text-07 body-variant dark:text-05")}>
                       Country
                     </span>
                     {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can’t be empty
+                    can't be empty
                   </span> */}
                   </label>
-                  <Input type="text" id="country" />
+                  <Input type="text" id="edit-from-country" />
                 </div>
               </div>
             </div>
@@ -119,7 +174,7 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
             <div className="space-y-6">
               <div className="space-y-2">
                 <label
-                  htmlFor="streetAddress"
+                  htmlFor="edit-clientName"
                   className="flex items-center justify-between"
                 >
                   <span
@@ -131,14 +186,14 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
                     Client's Name
                   </span>
                   {/* <span className="text-09 text-[10px] leading-3.75 font-semibold tracking-[-0.21px]">
-                    can’t be empty
+                    can't be empty
                   </span> */}
                 </label>
-                <Input type="text" id="streetAddress" />
+                <Input type="text" id="edit-clientName" />
               </div>
               <div className="space-y-2">
                 <label
-                  htmlFor="streetAddress"
+                  htmlFor="edit-clientEmail"
                   className="flex items-center justify-between"
                 >
                   <span
@@ -150,14 +205,14 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
                     Client's Email
                   </span>
                   {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can’t be empty
+                    can't be empty
                   </span> */}
                 </label>
-                <Input type="email" id="streetAddress" />
+                <Input type="email" id="edit-clientEmail" />
               </div>
               <div className="space-y-2">
                 <label
-                  htmlFor="streetAddress"
+                  htmlFor="edit-to-streetAddress"
                   className="flex items-center justify-between"
                 >
                   <span
@@ -169,53 +224,53 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
                     Street Address
                   </span>
                   {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can’t be empty
+                    can't be empty
                   </span> */}
                 </label>
-                <Input type="text" id="streetAddress" />
+                <Input type="text" id="edit-to-streetAddress" />
               </div>
               <div className="grid grid-cols-3 gap-x-6">
                 <div className="space-y-2">
                   <label
-                    htmlFor="city"
+                    htmlFor="edit-to-city"
                     className="flex items-center justify-between"
                   >
                     <span className={cn("text-07 body-variant dark:text-05")}>
                       City
                     </span>
                     {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can’t be empty
+                    can't be empty
                   </span> */}
                   </label>
-                  <Input type="text" id="city" />
+                  <Input type="text" id="edit-to-city" />
                 </div>
                 <div className="space-y-2">
                   <label
-                    htmlFor="postCode"
+                    htmlFor="edit-to-postCode"
                     className="flex items-center justify-between"
                   >
                     <span className={cn("text-07 body-variant dark:text-05")}>
                       Post Code
                     </span>
                     {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can’t be empty
+                    can't be empty
                   </span> */}
                   </label>
-                  <Input type="text" id="postCode" />
+                  <Input type="text" id="edit-to-postCode" />
                 </div>
                 <div className="space-y-2">
                   <label
-                    htmlFor="country"
+                    htmlFor="edit-to-country"
                     className="flex items-center justify-between"
                   >
                     <span className={cn("text-07 body-variant dark:text-05")}>
                       Country
                     </span>
                     {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can’t be empty
+                    can't be empty
                   </span> */}
                   </label>
-                  <Input type="text" id="country" />
+                  <Input type="text" id="edit-to-country" />
                 </div>
               </div>
             </div>
@@ -224,45 +279,45 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
           <div className="mb-12 grid grid-cols-2 gap-6">
             <div className="space-y-2">
               <label
-                htmlFor="postCode"
+                htmlFor="edit-invoiceDate"
                 className="flex items-center justify-between"
               >
                 <span className={cn("text-07 body-variant dark:text-05")}>
                   Invoice Date
                 </span>
                 {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can’t be empty
+                    can't be empty
                   </span> */}
               </label>
-              <DatePicker />
+              <DatePicker id="edit-invoiceDate" />
             </div>
             <div className="space-y-2">
               <label
-                htmlFor="postCode"
+                htmlFor="edit-paymentTerms"
                 className="flex items-center justify-between"
               >
                 <span className={cn("text-07 body-variant dark:text-05")}>
                   Payment Terms
                 </span>
                 {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can’t be empty
+                    can't be empty
                   </span> */}
               </label>
-              <Select />
+              <Select id="edit-paymentTerms" />
             </div>
             <div className="space-y-2 md:col-span-2">
               <label
-                htmlFor="country"
+                htmlFor="edit-projectDescription"
                 className="flex items-center justify-between"
               >
                 <span className={cn("text-07 body-variant dark:text-05")}>
                   Project Description
                 </span>
                 {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can’t be empty
+                    can't be empty
                   </span> */}
               </label>
-              <Input type="text" id="country" />
+              <Input type="text" id="edit-projectDescription" />
             </div>
           </div>
 
@@ -298,45 +353,59 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
               <tbody>
                 <tr>
                   <td className="py-4.5 pr-4">
-                    <Input type="text" />
+                    <label htmlFor="edit-item-1-name" className="sr-only">Item 1 Name</label>
+                    <Input type="text" id="edit-item-1-name" />
                   </td>
                   <td className="py-4.5 pr-4">
-                    <Input type="number" className="px-2" />
+                    <label htmlFor="edit-item-1-qty" className="sr-only">Item 1 Quantity</label>
+                    <Input type="number" id="edit-item-1-qty" className="px-2" />
                   </td>
                   <td className="py-4.5 pr-4">
-                    <Input type="number" className="px-2" />
+                    <label htmlFor="edit-item-1-price" className="sr-only">Item 1 Price</label>
+                    <Input type="number" id="edit-item-1-price" className="px-2" />
                   </td>
                   <td>
-                    <span className="text-06 heading-s-variant">156.00</span>
+                    <span className="text-06 heading-s-variant" aria-label="Item 1 Total">156.00</span>
                   </td>
                   <td>
-                    <button className="transition-opacity duration-150 ease-linear hover:opacity-50">
+                    <button 
+                      type="button"
+                      className="transition-opacity duration-150 ease-linear hover:opacity-50"
+                      aria-label="Delete item 1"
+                    >
                       <TrashIcon />
                     </button>
                   </td>
                 </tr>
                 <tr>
                   <td className="py-4.5 pr-4">
-                    <Input type="text" />
+                    <label htmlFor="edit-item-2-name" className="sr-only">Item 2 Name</label>
+                    <Input type="text" id="edit-item-2-name" />
                   </td>
                   <td className="py-4.5 pr-4">
-                    <Input type="number" className="px-2" />
+                    <label htmlFor="edit-item-2-qty" className="sr-only">Item 2 Quantity</label>
+                    <Input type="number" id="edit-item-2-qty" className="px-2" />
                   </td>
                   <td className="py-4.5 pr-4">
-                    <Input type="number" className="px-2" />
+                    <label htmlFor="edit-item-2-price" className="sr-only">Item 2 Price</label>
+                    <Input type="number" id="edit-item-2-price" className="px-2" />
                   </td>
                   <td>
-                    <span className="text-06 heading-s-variant">156.00</span>
+                    <span className="text-06 heading-s-variant" aria-label="Item 2 Total">156.00</span>
                   </td>
                   <td>
-                    <button className="transition-opacity duration-150 ease-linear hover:opacity-50">
+                    <button 
+                      type="button"
+                      className="transition-opacity duration-150 ease-linear hover:opacity-50"
+                      aria-label="Delete item 2"
+                    >
                       <TrashIcon />
                     </button>
                   </td>
                 </tr>
               </tbody>
             </table>
-            <Button variant="button-6">+ Add New Item</Button>
+            <Button variant="button-6" type="button">+ Add New Item</Button>
           </div>
           <div className="my-8">
             <p className="text-09 text-[10px] leading-3.75 font-semibold">

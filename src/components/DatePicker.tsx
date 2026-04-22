@@ -2,35 +2,82 @@ import CalendarIcon from "@/assets/icons/CalendarIcon";
 import ChevronLeftIcon from "@/assets/icons/ChevronLeftIcon";
 import ChevronRightIcon from "@/assets/icons/ChevronRightIcon";
 import dayjs from "dayjs";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
 
-const DatePicker = () => {
+interface DatePickerProps {
+  id?: string;
+}
+
+const DatePicker = ({ id }: DatePickerProps) => {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Date | undefined>(
     new Date(2021, 7, 21),
   );
+  const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setOpen(!open);
+    } else if (e.key === "Escape" && open) {
+      e.preventDefault();
+      setOpen(false);
+      buttonRef.current?.focus();
+    }
+  };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <div
+        id={id}
+        ref={buttonRef}
+        role="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label="Choose date"
+        tabIndex={0}
         className={`heading-s-variant text-08 dark:bg-03 border-05 dark:border-04 hover:border-01 dark:hover:border-01 flex h-12 cursor-pointer items-center justify-between rounded border px-5 transition-colors dark:text-white ${
           open ? "border-01! dark:border-01!" : ""
         }`}
         onClick={() => setOpen(!open)}
+        onKeyDown={handleKeyDown}
       >
         <span>{selected && dayjs(selected).format("DD MMM YYYY")}</span>
         <CalendarIcon />
       </div>
       {open && (
-        <div className="dark:bg-04 absolute top-full left-0 z-50 mt-4 w-63 rounded-lg bg-white p-6 shadow-[0px_10px_20px_0px_rgba(72,84,159,0.25)] dark:shadow-none">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Choose date"
+          className="dark:bg-04 absolute top-full left-0 z-50 mt-4 w-63 rounded-lg bg-white p-6 shadow-[0px_10px_20px_0px_rgba(72,84,159,0.25)] dark:shadow-none"
+        >
           <DayPicker
             mode="single"
             selected={selected}
             onSelect={(date) => {
               setSelected(date);
               setOpen(false);
+              buttonRef.current?.focus();
             }}
             defaultMonth={selected || new Date(2021, 7)}
             showOutsideDays
