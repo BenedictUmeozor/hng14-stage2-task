@@ -32,7 +32,7 @@ const Invoice = ({ invoice }: { invoice: InvoiceType }) => {
           </div>
           <div
             className={cn(
-              "heading-s-variant flex h-10 w-[104px] items-center justify-center gap-x-2 rounded-md px-2 capitalize",
+              "heading-s-variant flex h-10 w-26 items-center justify-center gap-x-2 rounded-md px-2 capitalize",
               invoice.status === "paid" && "bg-[#33D69F]/6 text-[#33D69F]",
               invoice.status === "pending" && "bg-[#FF8F00]/6 text-[#FF8F00]",
               invoice.status === "draft" && "bg-[#373B53]/6 text-[#373B53]",
@@ -73,7 +73,7 @@ const Invoice = ({ invoice }: { invoice: InvoiceType }) => {
         </p>
         <div
           className={cn(
-            "heading-s-variant mr-5 flex h-10 w-[104px] items-center justify-center gap-x-2 rounded-md px-2 capitalize",
+            "heading-s-variant mr-5 flex h-10 w-26 items-center justify-center gap-x-2 rounded-md px-2 capitalize",
             invoice.status === "paid" && "bg-[#33D69F]/6 text-[#33D69F]",
             invoice.status === "pending" && "bg-[#FF8F00]/6 text-[#FF8F00]",
             invoice.status === "draft" && "bg-[#373B53]/6 text-[#373B53]",
