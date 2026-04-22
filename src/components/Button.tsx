@@ -16,7 +16,7 @@ const BaseButton = ({ className, ...props }: ComponentProps<"button">) => {
   return (
     <button
       className={cn(
-        "heading-s-variant bg-primary-light hover:bg-primary flex h-12 items-center gap-x-4 rounded-3xl px-6 whitespace-nowrap text-white transition-colors duration-150 ease-linear max-md:gap-x-2",
+        "heading-s-variant bg-primary-light hover:bg-primary flex h-12 items-center gap-x-4 rounded-3xl px-6 whitespace-nowrap text-white transition-colors duration-150 ease-linear max-md:gap-x-2 max-md:px-4",
         className,
       )}
       {...props}
@@ -43,7 +43,7 @@ const Button = ({ variant, children, ...rest }: ButtonProps) => {
   if (variant === "button-3") {
     return (
       <BaseButton
-        className="text-07 dark:text-05 dark:bg-04 bg-[#F9FAFE] hover:bg-05 dark:hover:bg-white"
+        className="text-07 dark:text-05 dark:bg-04 hover:bg-05 bg-[#F9FAFE] dark:hover:bg-white"
         {...rest}
       >
         {children}
@@ -54,7 +54,7 @@ const Button = ({ variant, children, ...rest }: ButtonProps) => {
   if (variant === "button-4") {
     return (
       <BaseButton
-        className="text-06 dark:text-05 bg-[#373B53] dark:bg-[#373B53] hover:bg-08 dark:hover:bg-03"
+        className="text-06 dark:text-05 hover:bg-08 dark:hover:bg-03 bg-[#373B53] dark:bg-[#373B53]"
         {...rest}
       >
         {children}

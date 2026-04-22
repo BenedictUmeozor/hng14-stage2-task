@@ -588,7 +588,7 @@ const EditInvoice = () => {
       </main>
       <div
         className={cn(
-          "dark:bg-12 fixed right-0 bottom-0 left-0 z-40 flex items-center justify-end gap-x-2 rounded-tr-2xl bg-white px-13 py-8 lg:pl-38.75",
+          "dark:bg-12 fixed right-0 bottom-0 left-0 z-40 flex items-center justify-end gap-x-2 rounded-tr-2xl bg-white px-6 py-8",
           hasScrolled && "shadow-[0_-8px_16px_-4px_rgba(0,0,0,0.1)]",
         )}
       >
