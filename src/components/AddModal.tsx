@@ -1,15 +1,25 @@
 import TrashIcon from "@/assets/icons/TrashIcon";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 import Button from "./Button";
 import DatePicker from "./DatePicker";
 import Input from "./Input";
 import Select from "./Select";
 
 const AddModal = () => {
+  const [hasScrolled, setHasScrolled] = useState(false);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    setHasScrolled(e.currentTarget.scrollTop > 0);
+  };
+
   return (
     <div className="fixed inset-0 z-99 bg-black/50">
-      <form className="dark:bg-12 grid h-full w-full max-w-[719px] grid-rows-[1fr_auto] overflow-hidden rounded-r-2xl bg-white py-13 pb-0 max-lg:max-w-[616px]">
-        <div className="overflow-y-auto px-13 lg:pl-[155px]">
+      <form className="dark:bg-12 grid h-full w-full max-w-179.75 grid-rows-[1fr_auto] overflow-hidden rounded-r-2xl bg-white pb-0 max-lg:max-w-154">
+        <div
+          onScroll={handleScroll}
+          className={cn("overflow-y-auto px-13 pt-13 lg:pl-38.75")}
+        >
           <h2 className="text-08 heading-m mb-11 dark:text-white">
             New Invoice
           </h2>
@@ -99,7 +109,7 @@ const AddModal = () => {
                   >
                     Client's Name
                   </span>
-                  {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
+                  {/* <span className="text-09 text-[10px] leading-3.75 font-semibold tracking-[-0.21px]">
                     can’t be empty
                   </span> */}
                 </label>
@@ -307,16 +317,21 @@ const AddModal = () => {
             </table>
             <Button variant="button-6">+ Add New Item</Button>
           </div>
-          <div className="mt-8">
-            <p className="text-09 text-[10px] leading-[15px] font-semibold">
+          <div className="my-8">
+            <p className="text-09 text-[10px] leading-3.75 font-semibold">
               - All fields must be added
             </p>
-            <p className="text-09 text-[10px] leading-[15px] font-semibold">
+            <p className="text-09 text-[10px] leading-3.75 font-semibold">
               - An item must be added
             </p>
           </div>
         </div>
-        <div className="flex items-center justify-between px-13 py-8 lg:pl-[155px]">
+        <div
+          className={cn(
+            "flex items-center justify-between rounded-tr-2xl px-13 py-8 lg:pl-38.75",
+            hasScrolled && "shadow-[0_-8px_16px_-4px_rgba(0,0,0,0.1)]",
+          )}
+        >
           <Button variant="button-3" type="button">
             Discard
           </Button>
