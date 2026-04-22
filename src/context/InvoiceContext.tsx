@@ -35,8 +35,11 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
   const [filterStatuses, setFilterStatuses] = useState<string[]>([]);
 
   const filteredInvoices = useMemo(() => {
-    if (filterStatuses.length === 0) return invoices;
-    return invoices.filter((inv) => filterStatuses.includes(inv.status));
+    const list = filterStatuses.length === 0
+      ? invoices
+      : invoices.filter((inv) => filterStatuses.includes(inv.status));
+    
+    return [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }, [invoices, filterStatuses]);
 
   const markAsPaid = (id: string): boolean => {
