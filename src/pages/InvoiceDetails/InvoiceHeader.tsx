@@ -2,6 +2,7 @@ import Button from "@/components/Button";
 import { cn } from "@/lib/utils";
 import type { Invoice } from "@/types";
 import { useMediaQuery } from "react-responsive";
+import { useNavigate } from "react-router";
 
 interface InvoiceHeaderProps {
   invoice: Invoice;
@@ -11,6 +12,11 @@ interface InvoiceHeaderProps {
 
 const InvoiceHeader = ({ invoice, onEdit, onDelete }: InvoiceHeaderProps) => {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
+  const navigate = useNavigate();
+
+  const handleEditClick = () => {
+    navigate(`/${invoice.id}/edit`);
+  };
 
   return (
     <>
@@ -51,7 +57,9 @@ const InvoiceHeader = ({ invoice, onEdit, onDelete }: InvoiceHeaderProps) => {
       {isMobile && (
         <div className="fixed bottom-0 left-0 w-full bg-white px-6 py-5">
           <div className="flex items-center gap-x-2">
-            <Button variant="button-3">Edit</Button>
+            <Button variant="button-3" onClick={handleEditClick}>
+              Edit
+            </Button>
             <Button variant="button-5" onClick={onDelete}>
               Delete
             </Button>

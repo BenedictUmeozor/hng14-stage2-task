@@ -13,7 +13,7 @@ const Header = ({ onOpen }: HeaderProps) => {
   const navigate = useNavigate();
 
   const handleNewInvoiceClick = () => {
-    if (isMobile) navigate("/create-invoice");
+    if (isMobile) navigate("/new");
     else onOpen();
   };
 

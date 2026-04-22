@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { useMediaQuery } from "react-responsive";
 import { Navigate, useNavigate } from "react-router";
 
-const CreateInvoice = () => {
+const EditInvoice = () => {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
   const [hasScrolled, setHasScrolled] = useState(false);
   const navigate = useNavigate();
@@ -40,8 +40,8 @@ const CreateInvoice = () => {
       <main className="max-md:pb-16">
         <BackButton />
         <form className="mt-6">
-          <h2 className="text-08 heading-m mb-5 dark:text-white">
-            New Invoice
+          <h2 className="text-08 heading-m mb-11 dark:text-white">
+            Edit <span className="text-06">#</span>XM9141
           </h2>
 
           <div className="mb-9">
@@ -405,24 +405,19 @@ const CreateInvoice = () => {
       </main>
       <div
         className={cn(
-          "dark:bg-12 fixed right-0 bottom-0 left-0 z-40 flex items-center justify-between rounded-tr-2xl bg-white px-13 py-8 lg:pl-38.75",
+          "dark:bg-12 fixed right-0 bottom-0 left-0 z-40 flex items-center justify-end gap-x-2 rounded-tr-2xl bg-white px-13 py-8 lg:pl-38.75",
           hasScrolled && "shadow-[0_-8px_16px_-4px_rgba(0,0,0,0.1)]",
         )}
       >
         <Button variant="button-3" type="button" onClick={() => navigate(-1)}>
-          Discard
+          Cancel
         </Button>
-        <div className="flex items-center gap-x-2">
-          <Button variant="button-4" type="button">
-            Save as draft
-          </Button>
-          <Button variant="button-2" type="submit">
-            Save & Send
-          </Button>
-        </div>
+        <Button variant="button-2" type="submit">
+          Save Changes
+        </Button>
       </div>
     </>
   );
 };
 
-export default CreateInvoice;
+export default EditInvoice;
