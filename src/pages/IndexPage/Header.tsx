@@ -2,7 +2,11 @@ import Button from "@/components/Button";
 import { useMediaQuery } from "react-responsive";
 import StatusFilter from "./StatusFilter";
 
-const Header = () => {
+interface HeaderProps {
+  onOpen: () => void;
+}
+
+const Header = ({ onOpen }: HeaderProps) => {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
 
   return (
@@ -15,7 +19,9 @@ const Header = () => {
       </div>
       <div className="flex flex-1 items-center justify-end max-md:gap-x-4">
         <StatusFilter />
-        <Button variant="button-1">{isMobile ? "New" : "New Invoice"}</Button>
+        <Button variant="button-1" onClick={onOpen}>
+          {isMobile ? "New" : "New Invoice"}
+        </Button>
       </div>
     </header>
   );

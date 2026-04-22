@@ -6,7 +6,12 @@ import DatePicker from "./DatePicker";
 import Input from "./Input";
 import Select from "./Select";
 
-const AddModal = () => {
+interface AddModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const AddModal = ({ isOpen, onClose }: AddModalProps) => {
   const [hasScrolled, setHasScrolled] = useState(false);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -14,8 +19,22 @@ const AddModal = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-99 bg-black/50">
-      <form className="dark:bg-12 grid h-full w-full max-w-179.75 grid-rows-[1fr_auto] overflow-hidden rounded-r-2xl bg-white pb-0 max-lg:max-w-154">
+    <div
+      className={cn(
+        "fixed inset-0 z-[99] flex bg-black/50 transition-all duration-500 ease-in-out",
+        isOpen ? "opacity-100 visible" : "pointer-events-none opacity-0 invisible",
+      )}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <form
+        className={cn(
+          "dark:bg-12 grid h-full w-full max-w-179.75 grid-rows-[1fr_auto] overflow-hidden rounded-r-2xl bg-white pb-0 transition-transform duration-500 ease-in-out max-lg:max-w-154",
+          isOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div
           onScroll={handleScroll}
           className={cn("overflow-y-auto px-13 pt-13 lg:pl-38.75")}
@@ -332,7 +351,7 @@ const AddModal = () => {
             hasScrolled && "shadow-[0_-8px_16px_-4px_rgba(0,0,0,0.1)]",
           )}
         >
-          <Button variant="button-3" type="button">
+          <Button variant="button-3" type="button" onClick={onClose}>
             Discard
           </Button>
           <div className="flex items-center gap-x-2">

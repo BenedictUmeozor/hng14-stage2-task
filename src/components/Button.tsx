@@ -27,7 +27,7 @@ const BaseButton = ({ className, ...props }: ComponentProps<"button">) => {
 const Button = ({ variant, children, ...rest }: ButtonProps) => {
   if (variant === "button-1") {
     return (
-      <BaseButton className="px-2 pr-4">
+      <BaseButton className="px-2 pr-4" {...rest}>
         <div className="flex size-8 items-center justify-center rounded-full bg-white">
           <PlusIcon />
         </div>
@@ -37,12 +37,15 @@ const Button = ({ variant, children, ...rest }: ButtonProps) => {
   }
 
   if (variant === "button-2") {
-    return <BaseButton>{children}</BaseButton>;
+    return <BaseButton {...rest}>{children}</BaseButton>;
   }
 
   if (variant === "button-3") {
     return (
-      <BaseButton className="text-07 dark:text-05 dark:bg-04 hover:bg-05 bg-[#F9FAFE] dark:hover:bg-white">
+      <BaseButton
+        className="text-07 dark:text-05 dark:bg-04 bg-[#F9FAFE] hover:bg-05 dark:hover:bg-white"
+        {...rest}
+      >
         {children}
       </BaseButton>
     );
@@ -50,7 +53,10 @@ const Button = ({ variant, children, ...rest }: ButtonProps) => {
 
   if (variant === "button-4") {
     return (
-      <BaseButton className="text-06 dark:text-05 hover:bg-08 dark:hover:bg-03 bg-[#373B53] dark:bg-[#373B53]">
+      <BaseButton
+        className="text-06 dark:text-05 bg-[#373B53] dark:bg-[#373B53] hover:bg-08 dark:hover:bg-03"
+        {...rest}
+      >
         {children}
       </BaseButton>
     );
@@ -58,7 +64,7 @@ const Button = ({ variant, children, ...rest }: ButtonProps) => {
 
   if (variant === "button-5") {
     return (
-      <BaseButton className="hover:bg-10 bg-09 text-white">
+      <BaseButton className="bg-09 hover:bg-10 text-white" {...rest}>
         {children}
       </BaseButton>
     );
@@ -66,7 +72,10 @@ const Button = ({ variant, children, ...rest }: ButtonProps) => {
 
   if (variant === "button-6") {
     return (
-      <BaseButton className="text-07 dark:bg-04 block w-full bg-[#F9FAFE] hover:bg-[#DFE3FA]">
+      <BaseButton
+        className="text-07 dark:bg-04 block w-full bg-[#F9FAFE] hover:bg-[#DFE3FA]"
+        {...rest}
+      >
         {children}
       </BaseButton>
     );
