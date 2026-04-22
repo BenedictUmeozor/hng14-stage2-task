@@ -1,4 +1,5 @@
 import App from "@/App";
+import CreateInvoice from "@/pages/CreateInvoice";
 import IndexPage from "@/pages/IndexPage";
 import EmptyState from "@/pages/IndexPage/EmptyState";
 import InvoiceDetails from "@/pages/InvoiceDetails";
@@ -10,6 +11,7 @@ const router = createBrowserRouter([
     Component: App,
     children: [
       { index: true, Component: IndexPage },
+      { path: "create-invoice", Component: CreateInvoice },
       { path: "/:id", Component: InvoiceDetails },
       { path: "*", Component: EmptyState },
     ],

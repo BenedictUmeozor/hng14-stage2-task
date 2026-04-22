@@ -1,5 +1,6 @@
 import Button from "@/components/Button";
 import { useMediaQuery } from "react-responsive";
+import { useNavigate } from "react-router";
 import StatusFilter from "./StatusFilter";
 
 interface HeaderProps {
@@ -8,6 +9,13 @@ interface HeaderProps {
 
 const Header = ({ onOpen }: HeaderProps) => {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
+
+  const navigate = useNavigate();
+
+  const handleNewInvoiceClick = () => {
+    if (isMobile) navigate("/create-invoice");
+    else onOpen();
+  };
 
   return (
     <header className="flex items-center justify-between gap-x-8">
@@ -19,7 +27,7 @@ const Header = ({ onOpen }: HeaderProps) => {
       </div>
       <div className="flex flex-1 items-center justify-end max-md:gap-x-4">
         <StatusFilter />
-        <Button variant="button-1" onClick={onOpen}>
+        <Button variant="button-1" onClick={handleNewInvoiceClick}>
           {isMobile ? "New" : "New Invoice"}
         </Button>
       </div>
