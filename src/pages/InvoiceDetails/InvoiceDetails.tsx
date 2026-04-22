@@ -6,7 +6,7 @@ const InvoiceDetails = ({ invoice }: { invoice: Invoice }) => {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
 
   return (
-    <div className="dark:bg-03 rounded-lg bg-white p-12 max-lg:p-8 max-md:p-6">
+    <article className="dark:bg-03 rounded-lg bg-white p-12 max-lg:p-8 max-md:p-6">
       <div className="mb-5 flex gap-y-7.5 max-md:mb-7.5 max-md:flex-col md:items-start md:justify-between">
         <div className="space-y-1.75">
           <p className="heading-s-variant">
@@ -105,8 +105,8 @@ const InvoiceDetails = ({ invoice }: { invoice: Invoice }) => {
             </thead>
           )}
           <tbody>
-            {invoice.items.map((item) => (
-              <tr>
+            {invoice.items.map((item, index) => (
+              <tr key={index}>
                 {!isMobile && (
                   <td className="heading-s-variant text-08 py-4 text-left dark:text-white">
                     {item.name}
