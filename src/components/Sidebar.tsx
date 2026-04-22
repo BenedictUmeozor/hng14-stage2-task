@@ -8,11 +8,14 @@ const Sidebar = () => {
   const { isDark, toggle } = useDarkMode();
 
   return (
-    <div className="bg-sidebar dark:bg-primary-dark flex h-20 w-full items-center justify-between overflow-hidden max-md:h-18 lg:h-full lg:w-[103px] lg:flex-col lg:rounded-r-3xl">
+    <div className="bg-sidebar dark:bg-primary-dark z-9999 flex h-20 w-full items-center justify-between overflow-hidden max-md:h-18 lg:h-full lg:w-25.75 lg:flex-col lg:rounded-r-3xl">
       <AppLogo />
       <div className="flex gap-8 max-lg:h-full lg:w-full lg:flex-col">
         <div className="flex items-center justify-center">
-          <button onClick={toggle}>
+          <button
+            onClick={toggle}
+            className="transition-opacity duration-150 ease-linear hover:opacity-50"
+          >
             {isDark ? <SunIcon /> : <MoonIcon />}
           </button>
         </div>

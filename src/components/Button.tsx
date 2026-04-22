@@ -66,7 +66,7 @@ const Button = ({ variant, children, ...rest }: ButtonProps) => {
 
   if (variant === "button-6") {
     return (
-      <BaseButton className="hover:bg-07 text-05 bg-[#F9FAFE]">
+      <BaseButton className="text-07 dark:bg-04 block w-full bg-[#F9FAFE] hover:bg-[#DFE3FA]">
         {children}
       </BaseButton>
     );
