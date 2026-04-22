@@ -1,4 +1,5 @@
 import BackButton from "@/components/BackButton";
+import DeleteModal from "@/components/DeleteModal";
 import EditModal from "@/components/EditModal";
 import data from "@/lib/data.json";
 import { useState } from "react";
@@ -9,7 +10,8 @@ import InvoiceHeader from "./InvoiceHeader";
 
 const InvoiceDetails = () => {
   const params = useParams() as { id: string };
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const invoice = data.find((item) => item.id === params.id);
 
@@ -18,9 +20,20 @@ const InvoiceDetails = () => {
   return (
     <main className="max-md:pb-16">
       <BackButton />
-      <InvoiceHeader invoice={invoice} onOpen={() => setIsModalOpen(true)} />
+      <InvoiceHeader
+        invoice={invoice}
+        onEdit={() => setIsEditModalOpen(true)}
+        onDelete={() => setIsDeleteModalOpen(true)}
+      />
       <InvDetails invoice={invoice} />
-      <EditModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <EditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+      />
+      <DeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+      />
     </main>
   );
 };

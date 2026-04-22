@@ -5,10 +5,11 @@ import { useMediaQuery } from "react-responsive";
 
 interface InvoiceHeaderProps {
   invoice: Invoice;
-  onOpen: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
-const InvoiceHeader = ({ invoice, onOpen }: InvoiceHeaderProps) => {
+const InvoiceHeader = ({ invoice, onEdit, onDelete }: InvoiceHeaderProps) => {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
 
   return (
@@ -37,10 +38,12 @@ const InvoiceHeader = ({ invoice, onOpen }: InvoiceHeaderProps) => {
         </div>
         {!isMobile && (
           <div className="flex items-center justify-end gap-x-2">
-            <Button variant="button-3" onClick={onOpen}>
+            <Button variant="button-3" onClick={onEdit}>
               Edit
             </Button>
-            <Button variant="button-5">Delete</Button>
+            <Button variant="button-5" onClick={onDelete}>
+              Delete
+            </Button>
             <Button variant="button-2">Mark as paid</Button>
           </div>
         )}
@@ -49,7 +52,9 @@ const InvoiceHeader = ({ invoice, onOpen }: InvoiceHeaderProps) => {
         <div className="fixed bottom-0 left-0 w-full bg-white px-6 py-5">
           <div className="flex items-center gap-x-2">
             <Button variant="button-3">Edit</Button>
-            <Button variant="button-5">Delete</Button>
+            <Button variant="button-5" onClick={onDelete}>
+              Delete
+            </Button>
             <Button variant="button-2">Mark as paid</Button>
           </div>
         </div>
