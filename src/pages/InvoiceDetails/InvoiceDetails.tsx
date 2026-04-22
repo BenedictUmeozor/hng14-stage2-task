@@ -77,7 +77,7 @@ const InvoiceDetails = ({ invoice }: { invoice: Invoice }) => {
       </div>
 
       <div className="dark:bg-04 mt-11 rounded-t-lg bg-[#F9FAFE] p-8 max-md:mt-9 max-md:p-6">
-        <table className="w-full">
+        <table className="w-full" aria-label="Invoice items">
           {!isMobile && (
             <colgroup>
               <col className="w-[52%]" />
@@ -147,7 +147,7 @@ const InvoiceDetails = ({ invoice }: { invoice: Invoice }) => {
         <span className="body">{isMobile ? "Grand Total" : "Amount Due"}</span>
         <span className="heading-m">£ {invoice.total}</span>
       </div>
-    </div>
+    </article>
   );
 };
 

@@ -13,6 +13,7 @@ const Invoice = ({ invoice }: { invoice: InvoiceType }) => {
     return (
       <Link
         to={`/${invoice.id}`}
+        aria-label={`View invoice ${invoice.id} for ${invoice.clientName}`}
         className="hover:border-01 dark:bg-03 block cursor-pointer space-y-6 rounded-lg border border-transparent bg-white p-6 transition-colors duration-150 ease-linear"
       >
         <div className="flex items-center justify-between">
@@ -56,6 +57,7 @@ const Invoice = ({ invoice }: { invoice: InvoiceType }) => {
   return (
     <Link
       to={`/${invoice.id}`}
+      aria-label={`View invoice ${invoice.id} for ${invoice.clientName}`}
       className="hover:border-01 dark:bg-03 flex cursor-pointer items-center justify-between rounded-lg border border-transparent bg-white p-8 transition-colors duration-150 ease-linear max-lg:py-6"
     >
       <div className="flex items-center justify-start">
@@ -97,9 +99,11 @@ const Invoice = ({ invoice }: { invoice: InvoiceType }) => {
 
 const InvoiceList = () => {
   return (
-    <ul className="mt-16 space-y-4">
+    <ul className="mt-16 space-y-4" aria-label="Invoice list">
       {data.map((invoice) => (
-        <Invoice key={invoice.id} invoice={invoice} />
+        <li key={invoice.id}>
+          <Invoice invoice={invoice} />
+        </li>
       ))}
     </ul>
   );
