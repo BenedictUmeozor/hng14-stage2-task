@@ -8,15 +8,19 @@ import "react-day-picker/style.css";
 
 interface DatePickerProps {
   id?: string;
+  value?: Date;
+  onChange?: (date: Date | undefined) => void;
 }
 
-const DatePicker = ({ id }: DatePickerProps) => {
+const DatePicker = ({ id, value, onChange }: DatePickerProps) => {
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<Date | undefined>(
+  const [internalSelected, setInternalSelected] = useState<Date | undefined>(
     new Date(2021, 7, 21),
   );
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLDivElement>(null);
+
+  const selected = value !== undefined ? value : internalSelected;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -43,6 +47,16 @@ const DatePicker = ({ id }: DatePickerProps) => {
       setOpen(false);
       buttonRef.current?.focus();
     }
+  };
+
+  const handleSelect = (date: Date | undefined) => {
+    if (onChange) {
+      onChange(date);
+    } else {
+      setInternalSelected(date);
+    }
+    setOpen(false);
+    buttonRef.current?.focus();
   };
 
   return (
@@ -74,11 +88,7 @@ const DatePicker = ({ id }: DatePickerProps) => {
           <DayPicker
             mode="single"
             selected={selected}
-            onSelect={(date) => {
-              setSelected(date);
-              setOpen(false);
-              buttonRef.current?.focus();
-            }}
+            onSelect={handleSelect}
             defaultMonth={selected || new Date(2021, 7)}
             showOutsideDays
             fixedWeeks

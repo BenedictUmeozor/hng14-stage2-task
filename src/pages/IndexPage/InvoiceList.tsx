@@ -1,10 +1,11 @@
 import ChevronRightIcon from "@/assets/icons/ChevronRightIcon";
-import data from "@/lib/data.json";
+import { useInvoiceContext } from "@/context/InvoiceContext";
 import { cn } from "@/lib/utils";
 import type { Invoice as InvoiceType } from "@/types";
 import dayjs from "dayjs";
 import { useMediaQuery } from "react-responsive";
 import { Link } from "react-router";
+import EmptyState from "./EmptyState";
 
 const Invoice = ({ invoice }: { invoice: InvoiceType }) => {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
@@ -28,7 +29,7 @@ const Invoice = ({ invoice }: { invoice: InvoiceType }) => {
               Due {dayjs(invoice.paymentDue).format("DD MMM YYYY")}
             </p>
             <p className="text-08 heading-s dark:text-white">
-              £ {invoice.total}
+              £ {invoice.total.toFixed(2)}
             </p>
           </div>
           <div
@@ -71,7 +72,7 @@ const Invoice = ({ invoice }: { invoice: InvoiceType }) => {
       </div>
       <div className="flex items-center justify-end">
         <p className="text-08 heading-s mr-10 dark:text-white">
-          £ {invoice.total}
+          £ {invoice.total.toFixed(2)}
         </p>
         <div
           className={cn(
@@ -98,9 +99,15 @@ const Invoice = ({ invoice }: { invoice: InvoiceType }) => {
 };
 
 const InvoiceList = () => {
+  const { filteredInvoices } = useInvoiceContext();
+
+  if (filteredInvoices.length === 0) {
+    return <EmptyState />;
+  }
+
   return (
     <ul className="mt-16 space-y-4" aria-label="Invoice list">
-      {data.map((invoice) => (
+      {filteredInvoices.map((invoice) => (
         <li key={invoice.id}>
           <Invoice invoice={invoice} />
         </li>

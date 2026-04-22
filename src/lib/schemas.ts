@@ -15,6 +15,7 @@ export const InvoiceItemSchema = z.object({
 });
 
 export const InvoiceFormSchema = z.object({
+  createdAt: z.date({ required_error: 'Invoice date is required' }),
   clientName: z.string().min(1, 'Client name is required'),
   clientEmail: z.string().email('Invalid email format'),
   senderAddress: AddressSchema,

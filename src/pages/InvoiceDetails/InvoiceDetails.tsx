@@ -54,16 +54,16 @@ const InvoiceDetails = ({ invoice }: { invoice: Invoice }) => {
             </p>
             <div className="text-left">
               <p className="text-07 body dark:text-05">
-                {invoice.senderAddress.street}
+                {invoice.clientAddress.street}
               </p>
               <p className="text-07 body dark:text-05">
-                {invoice.senderAddress.city}
+                {invoice.clientAddress.city}
               </p>
               <p className="text-07 body dark:text-05">
-                {invoice.senderAddress.postCode}
+                {invoice.clientAddress.postCode}
               </p>
               <p className="text-07 body dark:text-05">
-                {invoice.senderAddress.country}
+                {invoice.clientAddress.country}
               </p>
             </div>
           </div>
@@ -136,7 +136,7 @@ const InvoiceDetails = ({ invoice }: { invoice: Invoice }) => {
                   </>
                 )}
                 <td className="heading-s-variant text-08 py-4 text-right dark:text-white">
-                  £ {item.price}
+                  £ {item.total.toFixed(2)}
                 </td>
               </tr>
             ))}
@@ -145,7 +145,7 @@ const InvoiceDetails = ({ invoice }: { invoice: Invoice }) => {
       </div>
       <div className="dark:bg-08 flex items-center justify-between rounded-b-lg bg-[#373B53] px-8 py-5 text-white">
         <span className="body">{isMobile ? "Grand Total" : "Amount Due"}</span>
-        <span className="heading-m">£ {invoice.total}</span>
+        <span className="heading-m">£ {invoice.total.toFixed(2)}</span>
       </div>
     </article>
   );

@@ -1,6 +1,18 @@
 import TrashIcon from "@/assets/icons/TrashIcon";
-import { cn } from "@/lib/utils";
+import { useInvoiceContext } from "@/context/InvoiceContext";
+import type { InvoiceFormData } from "@/lib/schemas";
+import { InvoiceFormSchema } from "@/lib/schemas";
+import {
+  calculateInvoiceTotal,
+  calculateItemTotal,
+  calculatePaymentDue,
+  cn,
+} from "@/lib/utils";
+import type { Invoice } from "@/types";
+import { zodResolver } from "@hookform/resolvers/zod";
+import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
 import Button from "./Button";
 import DatePicker from "./DatePicker";
 import Input from "./Input";
@@ -9,12 +21,74 @@ import Select from "./Select";
 interface EditModalProps {
   isOpen: boolean;
   onClose: () => void;
+  invoice: Invoice | null;
 }
 
-const EditModal = ({ isOpen, onClose }: EditModalProps) => {
+const EditModal = ({ isOpen, onClose, invoice }: EditModalProps) => {
   const [hasScrolled, setHasScrolled] = useState(false);
   const modalRef = useRef<HTMLFormElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const { updateInvoice } = useInvoiceContext();
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    watch,
+    setValue,
+  } = useForm<InvoiceFormData>({
+    resolver: zodResolver(InvoiceFormSchema),
+    defaultValues: {
+      createdAt: new Date(),
+      senderAddress: { street: "", city: "", postCode: "", country: "" },
+      clientAddress: { street: "", city: "", postCode: "", country: "" },
+      clientName: "",
+      clientEmail: "",
+      description: "",
+      paymentTerms: 30,
+      items: [{ name: "", quantity: 0, price: 0, total: 0 }],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "items",
+  });
+
+  const watchItems = watch("items");
+
+  // Populate form when invoice changes
+  useEffect(() => {
+    if (invoice && isOpen) {
+      reset({
+        createdAt: new Date(invoice.createdAt),
+        clientName: invoice.clientName,
+        clientEmail: invoice.clientEmail,
+        description: invoice.description,
+        paymentTerms: invoice.paymentTerms,
+        senderAddress: { ...invoice.senderAddress },
+        clientAddress: { ...invoice.clientAddress },
+        items: invoice.items.map((item) => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          total: item.total,
+        })),
+      });
+    }
+  }, [invoice, isOpen, reset]);
+
+  // Compute item totals
+  useEffect(() => {
+    watchItems.forEach((item, index) => {
+      const computed = calculateItemTotal(item.quantity || 0, item.price || 0);
+      if (item.total !== computed) {
+        setValue(`items.${index}.total`, computed);
+      }
+    });
+  }, [watchItems, setValue]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     setHasScrolled(e.currentTarget.scrollTop > 0);
@@ -23,11 +97,11 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
   useEffect(() => {
     if (isOpen) {
       previousFocusRef.current = document.activeElement as HTMLElement;
-      
+
       const focusableElements = modalRef.current?.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       );
-      
+
       if (focusableElements && focusableElements.length > 0) {
         (focusableElements[0] as HTMLElement).focus();
       }
@@ -47,13 +121,15 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
 
       if (e.key === "Tab") {
         const focusableElements = modalRef.current?.querySelectorAll(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
         );
-        
+
         if (!focusableElements || focusableElements.length === 0) return;
 
         const firstElement = focusableElements[0] as HTMLElement;
-        const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+        const lastElement = focusableElements[
+          focusableElements.length - 1
+        ] as HTMLElement;
 
         if (e.shiftKey && document.activeElement === firstElement) {
           e.preventDefault();
@@ -68,6 +144,38 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
+
+  const onSubmit = (data: InvoiceFormData) => {
+    if (!invoice) return;
+
+    const createdAt = dayjs(data.createdAt).format("YYYY-MM-DD");
+    const paymentDue = calculatePaymentDue(createdAt, data.paymentTerms);
+    const items = data.items.map((item) => ({
+      ...item,
+      total: calculateItemTotal(item.quantity || 0, item.price || 0),
+    }));
+    const total = calculateInvoiceTotal(items);
+
+    const updatedInvoice: Invoice = {
+      id: invoice.id,
+      createdAt,
+      paymentDue,
+      description: data.description,
+      paymentTerms: data.paymentTerms,
+      clientName: data.clientName,
+      clientEmail: data.clientEmail,
+      status: invoice.status === "draft" ? "pending" : invoice.status,
+      senderAddress: data.senderAddress,
+      clientAddress: data.clientAddress,
+      items,
+      total,
+    };
+
+    updateInvoice(invoice.id, updatedInvoice);
+    onClose();
+  };
+
+  const hasErrors = Object.keys(errors).length > 0;
 
   return (
     <div
@@ -86,6 +194,7 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
     >
       <form
         ref={modalRef}
+        onSubmit={handleSubmit(onSubmit)}
         className={cn(
           "dark:bg-12 grid h-full w-full max-w-179.75 grid-rows-[1fr_auto] overflow-hidden rounded-r-2xl bg-white pb-0 transition-transform duration-500 ease-in-out max-lg:max-w-154",
           isOpen ? "translate-x-0" : "-translate-x-full",
@@ -96,8 +205,12 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
           onScroll={handleScroll}
           className={cn("overflow-y-auto px-13 pt-13 lg:pl-38.75")}
         >
-          <h2 id="edit-modal-title" className="text-08 heading-m mb-11 dark:text-white">
-            Edit <span className="text-06">#</span>XM9141
+          <h2
+            id="edit-modal-title"
+            className="text-08 heading-m mb-11 dark:text-white"
+          >
+            Edit <span className="text-06">#</span>
+            {invoice?.id}
           </h2>
 
           <div className="mb-12">
@@ -111,16 +224,23 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
                   <span
                     className={cn(
                       "text-07 body-variant dark:text-05",
-                      //  error &&  "text-09",
+                      errors.senderAddress?.street && "text-09",
                     )}
                   >
                     Street Address
                   </span>
-                  {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
+                  {errors.senderAddress?.street && (
+                    <span className="text-09 text-[10px] leading-3.75 font-semibold tracking-[-0.21px]">
+                      can't be empty
+                    </span>
+                  )}
                 </label>
-                <Input type="text" id="edit-from-streetAddress" />
+                <Input
+                  type="text"
+                  id="edit-from-streetAddress"
+                  {...register("senderAddress.street")}
+                  error={!!errors.senderAddress?.street}
+                />
               </div>
               <div className="grid grid-cols-3 gap-x-6">
                 <div className="space-y-2">
@@ -128,42 +248,63 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
                     htmlFor="edit-from-city"
                     className="flex items-center justify-between"
                   >
-                    <span className={cn("text-07 body-variant dark:text-05")}>
+                    <span
+                      className={cn(
+                        "text-07 body-variant dark:text-05",
+                        errors.senderAddress?.city && "text-09",
+                      )}
+                    >
                       City
                     </span>
-                    {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
                   </label>
-                  <Input type="text" id="edit-from-city" />
+                  <Input
+                    type="text"
+                    id="edit-from-city"
+                    {...register("senderAddress.city")}
+                    error={!!errors.senderAddress?.city}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label
                     htmlFor="edit-from-postCode"
                     className="flex items-center justify-between"
                   >
-                    <span className={cn("text-07 body-variant dark:text-05")}>
+                    <span
+                      className={cn(
+                        "text-07 body-variant dark:text-05",
+                        errors.senderAddress?.postCode && "text-09",
+                      )}
+                    >
                       Post Code
                     </span>
-                    {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
                   </label>
-                  <Input type="text" id="edit-from-postCode" />
+                  <Input
+                    type="text"
+                    id="edit-from-postCode"
+                    {...register("senderAddress.postCode")}
+                    error={!!errors.senderAddress?.postCode}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label
                     htmlFor="edit-from-country"
                     className="flex items-center justify-between"
                   >
-                    <span className={cn("text-07 body-variant dark:text-05")}>
+                    <span
+                      className={cn(
+                        "text-07 body-variant dark:text-05",
+                        errors.senderAddress?.country && "text-09",
+                      )}
+                    >
                       Country
                     </span>
-                    {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
                   </label>
-                  <Input type="text" id="edit-from-country" />
+                  <Input
+                    type="text"
+                    id="edit-from-country"
+                    {...register("senderAddress.country")}
+                    error={!!errors.senderAddress?.country}
+                  />
                 </div>
               </div>
             </div>
@@ -180,16 +321,23 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
                   <span
                     className={cn(
                       "text-07 body-variant dark:text-05",
-                      //  error &&  "text-09",
+                      errors.clientName && "text-09",
                     )}
                   >
                     Client's Name
                   </span>
-                  {/* <span className="text-09 text-[10px] leading-3.75 font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
+                  {errors.clientName && (
+                    <span className="text-09 text-[10px] leading-3.75 font-semibold tracking-[-0.21px]">
+                      can't be empty
+                    </span>
+                  )}
                 </label>
-                <Input type="text" id="edit-clientName" />
+                <Input
+                  type="text"
+                  id="edit-clientName"
+                  {...register("clientName")}
+                  error={!!errors.clientName}
+                />
               </div>
               <div className="space-y-2">
                 <label
@@ -199,16 +347,23 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
                   <span
                     className={cn(
                       "text-07 body-variant dark:text-05",
-                      //  error &&  "text-09",
+                      errors.clientEmail && "text-09",
                     )}
                   >
                     Client's Email
                   </span>
-                  {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
+                  {errors.clientEmail && (
+                    <span className="text-09 text-[10px] leading-3.75 font-semibold tracking-[-0.21px]">
+                      {errors.clientEmail.message}
+                    </span>
+                  )}
                 </label>
-                <Input type="email" id="edit-clientEmail" />
+                <Input
+                  type="email"
+                  id="edit-clientEmail"
+                  {...register("clientEmail")}
+                  error={!!errors.clientEmail}
+                />
               </div>
               <div className="space-y-2">
                 <label
@@ -218,16 +373,23 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
                   <span
                     className={cn(
                       "text-07 body-variant dark:text-05",
-                      //  error &&  "text-09",
+                      errors.clientAddress?.street && "text-09",
                     )}
                   >
                     Street Address
                   </span>
-                  {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
+                  {errors.clientAddress?.street && (
+                    <span className="text-09 text-[10px] leading-3.75 font-semibold tracking-[-0.21px]">
+                      can't be empty
+                    </span>
+                  )}
                 </label>
-                <Input type="text" id="edit-to-streetAddress" />
+                <Input
+                  type="text"
+                  id="edit-to-streetAddress"
+                  {...register("clientAddress.street")}
+                  error={!!errors.clientAddress?.street}
+                />
               </div>
               <div className="grid grid-cols-3 gap-x-6">
                 <div className="space-y-2">
@@ -235,42 +397,63 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
                     htmlFor="edit-to-city"
                     className="flex items-center justify-between"
                   >
-                    <span className={cn("text-07 body-variant dark:text-05")}>
+                    <span
+                      className={cn(
+                        "text-07 body-variant dark:text-05",
+                        errors.clientAddress?.city && "text-09",
+                      )}
+                    >
                       City
                     </span>
-                    {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
                   </label>
-                  <Input type="text" id="edit-to-city" />
+                  <Input
+                    type="text"
+                    id="edit-to-city"
+                    {...register("clientAddress.city")}
+                    error={!!errors.clientAddress?.city}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label
                     htmlFor="edit-to-postCode"
                     className="flex items-center justify-between"
                   >
-                    <span className={cn("text-07 body-variant dark:text-05")}>
+                    <span
+                      className={cn(
+                        "text-07 body-variant dark:text-05",
+                        errors.clientAddress?.postCode && "text-09",
+                      )}
+                    >
                       Post Code
                     </span>
-                    {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
                   </label>
-                  <Input type="text" id="edit-to-postCode" />
+                  <Input
+                    type="text"
+                    id="edit-to-postCode"
+                    {...register("clientAddress.postCode")}
+                    error={!!errors.clientAddress?.postCode}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label
                     htmlFor="edit-to-country"
                     className="flex items-center justify-between"
                   >
-                    <span className={cn("text-07 body-variant dark:text-05")}>
+                    <span
+                      className={cn(
+                        "text-07 body-variant dark:text-05",
+                        errors.clientAddress?.country && "text-09",
+                      )}
+                    >
                       Country
                     </span>
-                    {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
                   </label>
-                  <Input type="text" id="edit-to-country" />
+                  <Input
+                    type="text"
+                    id="edit-to-country"
+                    {...register("clientAddress.country")}
+                    error={!!errors.clientAddress?.country}
+                  />
                 </div>
               </div>
             </div>
@@ -285,11 +468,18 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
                 <span className={cn("text-07 body-variant dark:text-05")}>
                   Invoice Date
                 </span>
-                {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
               </label>
-              <DatePicker id="edit-invoiceDate" />
+              <Controller
+                name="createdAt"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    id="edit-invoiceDate"
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
             </div>
             <div className="space-y-2">
               <label
@@ -299,25 +489,44 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
                 <span className={cn("text-07 body-variant dark:text-05")}>
                   Payment Terms
                 </span>
-                {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
               </label>
-              <Select id="edit-paymentTerms" />
+              <Controller
+                name="paymentTerms"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    id="edit-paymentTerms"
+                    value={String(field.value)}
+                    onChange={(v) => field.onChange(Number(v))}
+                  />
+                )}
+              />
             </div>
             <div className="space-y-2 md:col-span-2">
               <label
                 htmlFor="edit-projectDescription"
                 className="flex items-center justify-between"
               >
-                <span className={cn("text-07 body-variant dark:text-05")}>
+                <span
+                  className={cn(
+                    "text-07 body-variant dark:text-05",
+                    errors.description && "text-09",
+                  )}
+                >
                   Project Description
                 </span>
-                {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
+                {errors.description && (
+                  <span className="text-09 text-[10px] leading-3.75 font-semibold tracking-[-0.21px]">
                     can't be empty
-                  </span> */}
+                  </span>
+                )}
               </label>
-              <Input type="text" id="edit-projectDescription" />
+              <Input
+                type="text"
+                id="edit-projectDescription"
+                {...register("description")}
+                error={!!errors.description}
+              />
             </div>
           </div>
 
@@ -351,69 +560,104 @@ const EditModal = ({ isOpen, onClose }: EditModalProps) => {
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td className="py-4.5 pr-4">
-                    <label htmlFor="edit-item-1-name" className="sr-only">Item 1 Name</label>
-                    <Input type="text" id="edit-item-1-name" />
-                  </td>
-                  <td className="py-4.5 pr-4">
-                    <label htmlFor="edit-item-1-qty" className="sr-only">Item 1 Quantity</label>
-                    <Input type="number" id="edit-item-1-qty" className="px-2" />
-                  </td>
-                  <td className="py-4.5 pr-4">
-                    <label htmlFor="edit-item-1-price" className="sr-only">Item 1 Price</label>
-                    <Input type="number" id="edit-item-1-price" className="px-2" />
-                  </td>
-                  <td>
-                    <span className="text-06 heading-s-variant" aria-label="Item 1 Total">156.00</span>
-                  </td>
-                  <td>
-                    <button 
-                      type="button"
-                      className="transition-opacity duration-150 ease-linear hover:opacity-50"
-                      aria-label="Delete item 1"
-                    >
-                      <TrashIcon />
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4.5 pr-4">
-                    <label htmlFor="edit-item-2-name" className="sr-only">Item 2 Name</label>
-                    <Input type="text" id="edit-item-2-name" />
-                  </td>
-                  <td className="py-4.5 pr-4">
-                    <label htmlFor="edit-item-2-qty" className="sr-only">Item 2 Quantity</label>
-                    <Input type="number" id="edit-item-2-qty" className="px-2" />
-                  </td>
-                  <td className="py-4.5 pr-4">
-                    <label htmlFor="edit-item-2-price" className="sr-only">Item 2 Price</label>
-                    <Input type="number" id="edit-item-2-price" className="px-2" />
-                  </td>
-                  <td>
-                    <span className="text-06 heading-s-variant" aria-label="Item 2 Total">156.00</span>
-                  </td>
-                  <td>
-                    <button 
-                      type="button"
-                      className="transition-opacity duration-150 ease-linear hover:opacity-50"
-                      aria-label="Delete item 2"
-                    >
-                      <TrashIcon />
-                    </button>
-                  </td>
-                </tr>
+                {fields.map((field, index) => (
+                  <tr key={field.id}>
+                    <td className="py-4.5 pr-4">
+                      <label
+                        htmlFor={`edit-item-${index}-name`}
+                        className="sr-only"
+                      >
+                        Item {index + 1} Name
+                      </label>
+                      <Input
+                        type="text"
+                        id={`edit-item-${index}-name`}
+                        {...register(`items.${index}.name`)}
+                        error={!!errors.items?.[index]?.name}
+                      />
+                    </td>
+                    <td className="py-4.5 pr-4">
+                      <label
+                        htmlFor={`edit-item-${index}-qty`}
+                        className="sr-only"
+                      >
+                        Item {index + 1} Quantity
+                      </label>
+                      <Input
+                        type="number"
+                        id={`edit-item-${index}-qty`}
+                        className="px-2"
+                        {...register(`items.${index}.quantity`, {
+                          valueAsNumber: true,
+                        })}
+                        error={!!errors.items?.[index]?.quantity}
+                      />
+                    </td>
+                    <td className="py-4.5 pr-4">
+                      <label
+                        htmlFor={`edit-item-${index}-price`}
+                        className="sr-only"
+                      >
+                        Item {index + 1} Price
+                      </label>
+                      <Input
+                        type="number"
+                        id={`edit-item-${index}-price`}
+                        className="px-2"
+                        step="0.01"
+                        {...register(`items.${index}.price`, {
+                          valueAsNumber: true,
+                        })}
+                        error={!!errors.items?.[index]?.price}
+                      />
+                    </td>
+                    <td>
+                      <span
+                        className="text-06 heading-s-variant"
+                        aria-label={`Item ${index + 1} Total`}
+                      >
+                        {(watchItems[index]?.total || 0).toFixed(2)}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="transition-opacity duration-150 ease-linear hover:opacity-50"
+                        aria-label={`Delete item ${index + 1}`}
+                        onClick={() => {
+                          if (fields.length > 1) remove(index);
+                        }}
+                      >
+                        <TrashIcon />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
-            <Button variant="button-6" type="button">+ Add New Item</Button>
+            <Button
+              variant="button-6"
+              type="button"
+              onClick={() =>
+                append({ name: "", quantity: 0, price: 0, total: 0 })
+              }
+            >
+              + Add New Item
+            </Button>
           </div>
           <div className="my-8">
-            <p className="text-09 text-[10px] leading-3.75 font-semibold">
-              - All fields must be added
-            </p>
-            <p className="text-09 text-[10px] leading-3.75 font-semibold">
-              - An item must be added
-            </p>
+            {hasErrors && (
+              <>
+                <p className="text-09 text-[10px] leading-3.75 font-semibold">
+                  - All fields must be added
+                </p>
+                {errors.items?.root && (
+                  <p className="text-09 text-[10px] leading-3.75 font-semibold">
+                    - An item must be added
+                  </p>
+                )}
+              </>
+            )}
           </div>
         </div>
         <div

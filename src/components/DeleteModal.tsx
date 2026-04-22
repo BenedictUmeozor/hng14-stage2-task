@@ -5,9 +5,13 @@ import Button from "./Button";
 const DeleteModal = ({
   isOpen,
   onClose,
+  invoiceId,
+  onConfirm,
 }: {
   isOpen: boolean;
   onClose: () => void;
+  invoiceId: string;
+  onConfirm: () => void;
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -88,14 +92,14 @@ const DeleteModal = ({
           Confirm Deletion
         </h3>
         <p className="body text-07 dark:text-05 mb-3.5">
-          Are you sure you want to delete invoice #XM9141? This action cannot be
+          Are you sure you want to delete invoice #{invoiceId}? This action cannot be
           undone.
         </p>
         <div className="flex items-center justify-end gap-x-2">
           <Button variant="button-3" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="button-5">Delete</Button>
+          <Button variant="button-5" onClick={onConfirm}>Delete</Button>
         </div>
       </div>
     </div>

@@ -1,12 +1,13 @@
 import ChevronDownIcon from "@/assets/icons/ChevronDownIcon";
 import Checkbox from "@/components/Checkbox";
 import { STATUS_OPTIONS } from "@/lib/constants";
+import { useInvoiceContext } from "@/context/InvoiceContext";
 import { useEffect, useRef, useState } from "react";
 import { useMediaQuery } from "react-responsive";
 
 const StatusFilter = () => {
+  const { filterStatuses, setFilterStatuses } = useInvoiceContext();
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<string[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
@@ -31,7 +32,7 @@ const StatusFilter = () => {
   }, [open]);
 
   const handleClick = (option: string) => {
-    setSelected((prev) => {
+    setFilterStatuses((prev) => {
       if (prev.includes(option)) {
         return prev.filter((item) => item !== option);
       } else {
@@ -83,13 +84,13 @@ const StatusFilter = () => {
               <li
                 key={option.id}
                 role="checkbox"
-                aria-checked={selected.includes(option.id)}
+                aria-checked={filterStatuses.includes(option.id)}
                 tabIndex={0}
                 className="group flex cursor-pointer items-center gap-x-3.25"
                 onClick={() => handleClick(option.id)}
                 onKeyDown={(e) => handleKeyDown(e, option.id)}
               >
-                <Checkbox checked={selected.includes(option.id)} />
+                <Checkbox checked={filterStatuses.includes(option.id)} />
                 <span className="heading-s-variant">{option.label}</span>
               </li>
             ))}

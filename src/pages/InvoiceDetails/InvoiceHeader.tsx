@@ -8,9 +8,10 @@ interface InvoiceHeaderProps {
   invoice: Invoice;
   onEdit: () => void;
   onDelete: () => void;
+  onMarkAsPaid: () => void;
 }
 
-const InvoiceHeader = ({ invoice, onEdit, onDelete }: InvoiceHeaderProps) => {
+const InvoiceHeader = ({ invoice, onEdit, onDelete, onMarkAsPaid }: InvoiceHeaderProps) => {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
   const navigate = useNavigate();
 
@@ -50,12 +51,14 @@ const InvoiceHeader = ({ invoice, onEdit, onDelete }: InvoiceHeaderProps) => {
             <Button variant="button-5" onClick={onDelete}>
               Delete
             </Button>
-            <Button variant="button-2">Mark as paid</Button>
+            {invoice.status === "pending" && (
+              <Button variant="button-2" onClick={onMarkAsPaid}>Mark as paid</Button>
+            )}
           </div>
         )}
       </header>
       {isMobile && (
-        <div className="fixed bottom-0 left-0 w-full bg-white px-6 py-5">
+        <div className="dark:bg-03 fixed bottom-0 left-0 w-full bg-white px-6 py-5">
           <div className="flex items-center gap-x-2">
             <Button variant="button-3" onClick={handleEditClick}>
               Edit
@@ -63,7 +66,9 @@ const InvoiceHeader = ({ invoice, onEdit, onDelete }: InvoiceHeaderProps) => {
             <Button variant="button-5" onClick={onDelete}>
               Delete
             </Button>
-            <Button variant="button-2">Mark as paid</Button>
+            {invoice.status === "pending" && (
+              <Button variant="button-2" onClick={onMarkAsPaid}>Mark as paid</Button>
+            )}
           </div>
         </div>
       )}

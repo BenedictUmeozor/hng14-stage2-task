@@ -1,6 +1,19 @@
 import TrashIcon from "@/assets/icons/TrashIcon";
-import { cn } from "@/lib/utils";
+import { useInvoiceContext } from "@/context/InvoiceContext";
+import type { InvoiceFormData } from "@/lib/schemas";
+import { InvoiceFormSchema } from "@/lib/schemas";
+import {
+  calculateInvoiceTotal,
+  calculateItemTotal,
+  calculatePaymentDue,
+  cn,
+  generateInvoiceId,
+} from "@/lib/utils";
+import type { Invoice } from "@/types";
+import { zodResolver } from "@hookform/resolvers/zod";
+import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
 import Button from "./Button";
 import DatePicker from "./DatePicker";
 import Input from "./Input";
@@ -15,6 +28,47 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
   const [hasScrolled, setHasScrolled] = useState(false);
   const modalRef = useRef<HTMLFormElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const { createInvoice, invoices } = useInvoiceContext();
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    getValues,
+    watch,
+    setValue,
+  } = useForm<InvoiceFormData>({
+    resolver: zodResolver(InvoiceFormSchema),
+    defaultValues: {
+      createdAt: new Date(),
+      senderAddress: { street: "", city: "", postCode: "", country: "" },
+      clientAddress: { street: "", city: "", postCode: "", country: "" },
+      clientName: "",
+      clientEmail: "",
+      description: "",
+      paymentTerms: 30,
+      items: [{ name: "", quantity: 0, price: 0, total: 0 }],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "items",
+  });
+
+  const watchItems = watch("items");
+
+  // Compute item totals when quantity/price change
+  useEffect(() => {
+    watchItems.forEach((item, index) => {
+      const computed = calculateItemTotal(item.quantity || 0, item.price || 0);
+      if (item.total !== computed) {
+        setValue(`items.${index}.total`, computed);
+      }
+    });
+  }, [watchItems, setValue]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     setHasScrolled(e.currentTarget.scrollTop > 0);
@@ -71,6 +125,95 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
+  const buildInvoice = (
+    data: InvoiceFormData,
+    status: "pending" | "draft",
+  ): Invoice => {
+    const id = generateInvoiceId(invoices.map((i) => i.id));
+    const createdAt = dayjs(data.createdAt).format("YYYY-MM-DD");
+    const paymentDue = calculatePaymentDue(createdAt, data.paymentTerms);
+    const items = data.items.map((item) => ({
+      ...item,
+      total: calculateItemTotal(item.quantity || 0, item.price || 0),
+    }));
+    const total = calculateInvoiceTotal(items);
+
+    return {
+      id,
+      createdAt,
+      paymentDue,
+      description: data.description,
+      paymentTerms: data.paymentTerms,
+      clientName: data.clientName,
+      clientEmail: data.clientEmail,
+      status,
+      senderAddress: data.senderAddress,
+      clientAddress: data.clientAddress,
+      items,
+      total,
+    };
+  };
+
+  const onSubmit = (data: InvoiceFormData) => {
+    const invoice = buildInvoice(data, "pending");
+    createInvoice(invoice);
+    reset();
+    onClose();
+  };
+
+  const handleSaveAsDraft = () => {
+    const data = getValues();
+    const id = generateInvoiceId(invoices.map((i) => i.id));
+    const createdAt = data.createdAt
+      ? dayjs(data.createdAt).format("YYYY-MM-DD")
+      : dayjs().format("YYYY-MM-DD");
+    const paymentTerms = data.paymentTerms || 30;
+    const paymentDue = calculatePaymentDue(createdAt, paymentTerms);
+    const items = (data.items || []).map((item) => ({
+      name: item.name || "",
+      quantity: item.quantity || 0,
+      price: item.price || 0,
+      total: calculateItemTotal(item.quantity || 0, item.price || 0),
+    }));
+    const total = calculateInvoiceTotal(items);
+
+    const invoice: Invoice = {
+      id,
+      createdAt,
+      paymentDue,
+      description: data.description || "",
+      paymentTerms,
+      clientName: data.clientName || "",
+      clientEmail: data.clientEmail || "",
+      status: "draft",
+      senderAddress: {
+        street: data.senderAddress?.street || "",
+        city: data.senderAddress?.city || "",
+        postCode: data.senderAddress?.postCode || "",
+        country: data.senderAddress?.country || "",
+      },
+      clientAddress: {
+        street: data.clientAddress?.street || "",
+        city: data.clientAddress?.city || "",
+        postCode: data.clientAddress?.postCode || "",
+        country: data.clientAddress?.country || "",
+      },
+      items,
+      total,
+    };
+
+    createInvoice(invoice);
+    reset();
+    onClose();
+  };
+
+  const handleDiscard = () => {
+    reset();
+    onClose();
+  };
+
+  const hasErrors = Object.keys(errors).length > 0;
+
   return (
     <div
       role="dialog"
@@ -88,6 +231,7 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
     >
       <form
         ref={modalRef}
+        onSubmit={handleSubmit(onSubmit)}
         className={cn(
           "dark:bg-12 grid h-full w-full max-w-179.75 grid-rows-[1fr_auto] overflow-hidden rounded-r-2xl bg-white pb-0 transition-transform duration-500 ease-in-out max-lg:max-w-154",
           isOpen ? "translate-x-0" : "-translate-x-full",
@@ -116,16 +260,23 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
                   <span
                     className={cn(
                       "text-07 body-variant dark:text-05",
-                      //  error &&  "text-09",
+                      errors.senderAddress?.street && "text-09",
                     )}
                   >
                     Street Address
                   </span>
-                  {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
+                  {errors.senderAddress?.street && (
+                    <span className="text-09 text-[10px] leading-3.75 font-semibold tracking-[-0.21px]">
+                      can't be empty
+                    </span>
+                  )}
                 </label>
-                <Input type="text" id="from-streetAddress" />
+                <Input
+                  type="text"
+                  id="from-streetAddress"
+                  {...register("senderAddress.street")}
+                  error={!!errors.senderAddress?.street}
+                />
               </div>
               <div className="grid grid-cols-3 gap-x-6">
                 <div className="space-y-2">
@@ -133,42 +284,63 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
                     htmlFor="from-city"
                     className="flex items-center justify-between"
                   >
-                    <span className={cn("text-07 body-variant dark:text-05")}>
+                    <span
+                      className={cn(
+                        "text-07 body-variant dark:text-05",
+                        errors.senderAddress?.city && "text-09",
+                      )}
+                    >
                       City
                     </span>
-                    {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
                   </label>
-                  <Input type="text" id="from-city" />
+                  <Input
+                    type="text"
+                    id="from-city"
+                    {...register("senderAddress.city")}
+                    error={!!errors.senderAddress?.city}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label
                     htmlFor="from-postCode"
                     className="flex items-center justify-between"
                   >
-                    <span className={cn("text-07 body-variant dark:text-05")}>
+                    <span
+                      className={cn(
+                        "text-07 body-variant dark:text-05",
+                        errors.senderAddress?.postCode && "text-09",
+                      )}
+                    >
                       Post Code
                     </span>
-                    {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
                   </label>
-                  <Input type="text" id="from-postCode" />
+                  <Input
+                    type="text"
+                    id="from-postCode"
+                    {...register("senderAddress.postCode")}
+                    error={!!errors.senderAddress?.postCode}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label
                     htmlFor="from-country"
                     className="flex items-center justify-between"
                   >
-                    <span className={cn("text-07 body-variant dark:text-05")}>
+                    <span
+                      className={cn(
+                        "text-07 body-variant dark:text-05",
+                        errors.senderAddress?.country && "text-09",
+                      )}
+                    >
                       Country
                     </span>
-                    {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
                   </label>
-                  <Input type="text" id="from-country" />
+                  <Input
+                    type="text"
+                    id="from-country"
+                    {...register("senderAddress.country")}
+                    error={!!errors.senderAddress?.country}
+                  />
                 </div>
               </div>
             </div>
@@ -185,16 +357,23 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
                   <span
                     className={cn(
                       "text-07 body-variant dark:text-05",
-                      //  error &&  "text-09",
+                      errors.clientName && "text-09",
                     )}
                   >
                     Client's Name
                   </span>
-                  {/* <span className="text-09 text-[10px] leading-3.75 font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
+                  {errors.clientName && (
+                    <span className="text-09 text-[10px] leading-3.75 font-semibold tracking-[-0.21px]">
+                      can't be empty
+                    </span>
+                  )}
                 </label>
-                <Input type="text" id="clientName" />
+                <Input
+                  type="text"
+                  id="clientName"
+                  {...register("clientName")}
+                  error={!!errors.clientName}
+                />
               </div>
               <div className="space-y-2">
                 <label
@@ -204,16 +383,23 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
                   <span
                     className={cn(
                       "text-07 body-variant dark:text-05",
-                      //  error &&  "text-09",
+                      errors.clientEmail && "text-09",
                     )}
                   >
                     Client's Email
                   </span>
-                  {/* <span className="text-09 text-[10px] leading-3.75 font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
+                  {errors.clientEmail && (
+                    <span className="text-09 text-[10px] leading-3.75 font-semibold tracking-[-0.21px]">
+                      {errors.clientEmail.message}
+                    </span>
+                  )}
                 </label>
-                <Input type="email" id="clientEmail" />
+                <Input
+                  type="email"
+                  id="clientEmail"
+                  {...register("clientEmail")}
+                  error={!!errors.clientEmail}
+                />
               </div>
               <div className="space-y-2">
                 <label
@@ -223,16 +409,23 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
                   <span
                     className={cn(
                       "text-07 body-variant dark:text-05",
-                      //  error &&  "text-09",
+                      errors.clientAddress?.street && "text-09",
                     )}
                   >
                     Street Address
                   </span>
-                  {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
+                  {errors.clientAddress?.street && (
+                    <span className="text-09 text-[10px] leading-3.75 font-semibold tracking-[-0.21px]">
+                      can't be empty
+                    </span>
+                  )}
                 </label>
-                <Input type="text" id="to-streetAddress" />
+                <Input
+                  type="text"
+                  id="to-streetAddress"
+                  {...register("clientAddress.street")}
+                  error={!!errors.clientAddress?.street}
+                />
               </div>
               <div className="grid grid-cols-3 gap-x-6">
                 <div className="space-y-2">
@@ -240,42 +433,63 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
                     htmlFor="to-city"
                     className="flex items-center justify-between"
                   >
-                    <span className={cn("text-07 body-variant dark:text-05")}>
+                    <span
+                      className={cn(
+                        "text-07 body-variant dark:text-05",
+                        errors.clientAddress?.city && "text-09",
+                      )}
+                    >
                       City
                     </span>
-                    {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
                   </label>
-                  <Input type="text" id="to-city" />
+                  <Input
+                    type="text"
+                    id="to-city"
+                    {...register("clientAddress.city")}
+                    error={!!errors.clientAddress?.city}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label
                     htmlFor="to-postCode"
                     className="flex items-center justify-between"
                   >
-                    <span className={cn("text-07 body-variant dark:text-05")}>
+                    <span
+                      className={cn(
+                        "text-07 body-variant dark:text-05",
+                        errors.clientAddress?.postCode && "text-09",
+                      )}
+                    >
                       Post Code
                     </span>
-                    {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
                   </label>
-                  <Input type="text" id="to-postCode" />
+                  <Input
+                    type="text"
+                    id="to-postCode"
+                    {...register("clientAddress.postCode")}
+                    error={!!errors.clientAddress?.postCode}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label
                     htmlFor="to-country"
                     className="flex items-center justify-between"
                   >
-                    <span className={cn("text-07 body-variant dark:text-05")}>
+                    <span
+                      className={cn(
+                        "text-07 body-variant dark:text-05",
+                        errors.clientAddress?.country && "text-09",
+                      )}
+                    >
                       Country
                     </span>
-                    {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
                   </label>
-                  <Input type="text" id="to-country" />
+                  <Input
+                    type="text"
+                    id="to-country"
+                    {...register("clientAddress.country")}
+                    error={!!errors.clientAddress?.country}
+                  />
                 </div>
               </div>
             </div>
@@ -290,11 +504,18 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
                 <span className={cn("text-07 body-variant dark:text-05")}>
                   Invoice Date
                 </span>
-                {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
               </label>
-              <DatePicker id="invoiceDate" />
+              <Controller
+                name="createdAt"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    id="invoiceDate"
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
             </div>
             <div className="space-y-2">
               <label
@@ -304,25 +525,44 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
                 <span className={cn("text-07 body-variant dark:text-05")}>
                   Payment Terms
                 </span>
-                {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
-                    can't be empty
-                  </span> */}
               </label>
-              <Select id="paymentTerms" />
+              <Controller
+                name="paymentTerms"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    id="paymentTerms"
+                    value={String(field.value)}
+                    onChange={(v) => field.onChange(Number(v))}
+                  />
+                )}
+              />
             </div>
             <div className="space-y-2 md:col-span-2">
               <label
                 htmlFor="projectDescription"
                 className="flex items-center justify-between"
               >
-                <span className={cn("text-07 body-variant dark:text-05")}>
+                <span
+                  className={cn(
+                    "text-07 body-variant dark:text-05",
+                    errors.description && "text-09",
+                  )}
+                >
                   Project Description
                 </span>
-                {/* <span className="text-09 text-[10px] leading-[15px] font-semibold tracking-[-0.21px]">
+                {errors.description && (
+                  <span className="text-09 text-[10px] leading-3.75 font-semibold tracking-[-0.21px]">
                     can't be empty
-                  </span> */}
+                  </span>
+                )}
               </label>
-              <Input type="text" id="projectDescription" />
+              <Input
+                type="text"
+                id="projectDescription"
+                {...register("description")}
+                error={!!errors.description}
+              />
             </div>
           </div>
 
@@ -356,93 +596,98 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td className="py-4.5 pr-4">
-                    <label htmlFor="item-1-name" className="sr-only">
-                      Item 1 Name
-                    </label>
-                    <Input type="text" id="item-1-name" />
-                  </td>
-                  <td className="py-4.5 pr-4">
-                    <label htmlFor="item-1-qty" className="sr-only">
-                      Item 1 Quantity
-                    </label>
-                    <Input type="number" id="item-1-qty" className="px-2" />
-                  </td>
-                  <td className="py-4.5 pr-4">
-                    <label htmlFor="item-1-price" className="sr-only">
-                      Item 1 Price
-                    </label>
-                    <Input type="number" id="item-1-price" className="px-2" />
-                  </td>
-                  <td>
-                    <span
-                      className="text-06 heading-s-variant"
-                      aria-label="Item 1 Total"
-                    >
-                      156.00
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="transition-opacity duration-150 ease-linear hover:opacity-50"
-                      aria-label="Delete item 1"
-                    >
-                      <TrashIcon />
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4.5 pr-4">
-                    <label htmlFor="item-2-name" className="sr-only">
-                      Item 2 Name
-                    </label>
-                    <Input type="text" id="item-2-name" />
-                  </td>
-                  <td className="py-4.5 pr-4">
-                    <label htmlFor="item-2-qty" className="sr-only">
-                      Item 2 Quantity
-                    </label>
-                    <Input type="number" id="item-2-qty" className="px-2" />
-                  </td>
-                  <td className="py-4.5 pr-4">
-                    <label htmlFor="item-2-price" className="sr-only">
-                      Item 2 Price
-                    </label>
-                    <Input type="number" id="item-2-price" className="px-2" />
-                  </td>
-                  <td>
-                    <span
-                      className="text-06 heading-s-variant"
-                      aria-label="Item 2 Total"
-                    >
-                      156.00
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="transition-opacity duration-150 ease-linear hover:opacity-50"
-                      aria-label="Delete item 2"
-                    >
-                      <TrashIcon />
-                    </button>
-                  </td>
-                </tr>
+                {fields.map((field, index) => (
+                  <tr key={field.id}>
+                    <td className="py-4.5 pr-4">
+                      <label htmlFor={`item-${index}-name`} className="sr-only">
+                        Item {index + 1} Name
+                      </label>
+                      <Input
+                        type="text"
+                        id={`item-${index}-name`}
+                        {...register(`items.${index}.name`)}
+                        error={!!errors.items?.[index]?.name}
+                      />
+                    </td>
+                    <td className="py-4.5 pr-4">
+                      <label htmlFor={`item-${index}-qty`} className="sr-only">
+                        Item {index + 1} Quantity
+                      </label>
+                      <Input
+                        type="number"
+                        id={`item-${index}-qty`}
+                        className="px-2"
+                        {...register(`items.${index}.quantity`, {
+                          valueAsNumber: true,
+                        })}
+                        error={!!errors.items?.[index]?.quantity}
+                      />
+                    </td>
+                    <td className="py-4.5 pr-4">
+                      <label
+                        htmlFor={`item-${index}-price`}
+                        className="sr-only"
+                      >
+                        Item {index + 1} Price
+                      </label>
+                      <Input
+                        type="number"
+                        id={`item-${index}-price`}
+                        className="px-2"
+                        step="0.01"
+                        {...register(`items.${index}.price`, {
+                          valueAsNumber: true,
+                        })}
+                        error={!!errors.items?.[index]?.price}
+                      />
+                    </td>
+                    <td>
+                      <span
+                        className="text-06 heading-s-variant"
+                        aria-label={`Item ${index + 1} Total`}
+                      >
+                        {(watchItems[index]?.total || 0).toFixed(2)}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="transition-opacity duration-150 ease-linear hover:opacity-50"
+                        aria-label={`Delete item ${index + 1}`}
+                        onClick={() => {
+                          if (fields.length > 1) remove(index);
+                        }}
+                      >
+                        <TrashIcon />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
-            <Button variant="button-6" type="button">
+            <Button
+              variant="button-6"
+              type="button"
+              onClick={() =>
+                append({ name: "", quantity: 0, price: 0, total: 0 })
+              }
+            >
               + Add New Item
             </Button>
           </div>
           <div className="my-8">
-            <p className="text-09 text-[10px] leading-3.75 font-semibold">
-              - All fields must be added
-            </p>
-            <p className="text-09 text-[10px] leading-3.75 font-semibold">
-              - An item must be added
-            </p>
+            {hasErrors && (
+              <>
+                <p className="text-09 text-[10px] leading-3.75 font-semibold">
+                  - All fields must be added
+                </p>
+                {errors.items?.root && (
+                  <p className="text-09 text-[10px] leading-3.75 font-semibold">
+                    - An item must be added
+                  </p>
+                )}
+              </>
+            )}
           </div>
         </div>
         <div
@@ -451,11 +696,15 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
             hasScrolled && "shadow-[0_-8px_16px_-4px_rgba(0,0,0,0.1)]",
           )}
         >
-          <Button variant="button-3" type="button" onClick={onClose}>
+          <Button variant="button-3" type="button" onClick={handleDiscard}>
             Discard
           </Button>
           <div className="flex items-center gap-x-2">
-            <Button variant="button-4" type="button">
+            <Button
+              variant="button-4"
+              type="button"
+              onClick={handleSaveAsDraft}
+            >
               Save as draft
             </Button>
             <Button variant="button-2" type="submit">
